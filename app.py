@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 import google.generativeai as genai
 import json
+from Twitter_Scraper import Twitter_Scraper
 
 # Load environment variables from .env file
 load_dotenv()
@@ -14,6 +15,9 @@ app = Flask(__name__)
 NEWS_API_KEY = os.getenv('NEWS_API_KEY')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 NEWS_API_URL = 'https://newsapi.org/v2/everything'
+USER_UNAME = os.getenv('TWITTER_USERNAME')
+USER_PASSWORD = os.getenv('TWITTER_PASSWORD')
+MAIL = os.getenv('MAIL')
 
 # Configure the Gemini API
 genai.configure(api_key=GEMINI_API_KEY)
@@ -89,6 +93,27 @@ def sample_prompt():
         return jsonify({'response': result})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+
+@app.route('/scrape_hashtag/<hashtag>', methods=['GET'])
+def scrape_hashtag(hashtag):
+    print(hashtag)
+    max_tweets = request.args.get('max_tweets', default=50, type=int)
+    
+    scraper = Twitter_Scraper(
+        mail=MAIL,
+        username=USER_UNAME,
+        password=USER_PASSWORD,
+        max_tweets=max_tweets,
+        scrape_hashtag=hashtag
+    )
+    
+    scraper.login()
+    scraper.scrape_tweets()
+    tweets = scraper.get_tweets()
+    scraper.driver.close()
+    
+    return jsonify(tweets)
 
 if __name__ == '__main__':
     app.run(debug=True)
